@@ -6,11 +6,11 @@ import copy
 
 class RNN:
     def __init__(self):
-        # Init parameters
+        # Init parameters and derivative of them
         self.W_xh = np.random.rand(3, 4) * 0.01
         self.W_hh = np.random.rand(3, 3) * 0.01
         self.W_hy = np.random.rand(4, 3) * 0.01
-        self.b_h = np.zeros(shape=(1, 1))
+        self.b_h = np.zeros(shape=(3, 1))
         self.b_y = np.zeros(shape=(4, 1))
 
         self.dW_xh = np.zeros_like(self.W_xh)
@@ -72,12 +72,12 @@ class RNN:
             # Reset derivative of parameters
             self.reset_epoch()
 
+            # Backward
             for i in reversed(range(1, 4)):
-                # Backward
                 self.dy_hat[i] = - (np.divide(y[i], self.y_hat[i]) - np.divide(1 - y[i], 1 - self.y_hat[i]))
 
                 self.dp[i] = self.dy_hat[i] * dsoftmax(self.p[i])
-                self.dW_hy += np.dot(self.dp[i], self.h[i].T)
+                self.dW_hy += self.dp[i] @ (self.h[i].T)
                 self.db_y += np.sum(self.dp[i], axis=1, keepdims=True)
 
                 self.dh[i] = np.dot(self.W_hy[i].T, self.dp[i])
@@ -85,6 +85,18 @@ class RNN:
                 self.dW_hh += np.dot(self.dz[i], self.h[i - 1])
                 self.dW_xh += np.dot(self.dz[i], self.x[i])
                 self.db_h += np.sum(self.dz[i], axis=1, keepdims=True)
+
+            # Backward for 0_th layer
+            self.dy_hat[0] = - (np.divide(y[0], self.y_hat[0]) - np.divide(1 - y[0], 1 - self.y_hat[0]))
+
+            self.dp[0] = self.dy_hat[0] * dsoftmax(self.p[0])
+            self.dW_hy += self.dp[0] @ (self.h[0].T)
+            self.db_y += np.sum(self.dp[0], axis=1, keepdims=True)
+
+            self.dh[0] = np.dot(self.W_hy[0].T, self.dp[0])
+            self.dz[0] = self.dh[0] * dtanh(self.z[0])
+            self.dW_xh += np.dot(self.dz[0], self.x[0])
+            self.db_h += np.sum(self.dz[0], axis=1, keepdims=True)
 
             # Update parameters
             self.W_hy = self.W_hy - lr * self.dW_hy
