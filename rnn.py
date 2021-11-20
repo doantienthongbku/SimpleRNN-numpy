@@ -1,6 +1,7 @@
 import numpy as np
 from utils import tanh, dtanh, softmax, dsoftmax
 import matplotlib.pyplot as plt
+import copy
 
 
 class RNN:
@@ -11,29 +12,40 @@ class RNN:
         self.W_hy = np.random.rand(4, 3) * 0.01
         self.b_h = np.zeros(shape=(1, 1))
         self.b_y = np.zeros(shape=(4, 1))
-        self.z = {}
-        self.h = {}
-        self.p = {}
-        self.y_hat = {}
 
-        self.dp = np.zeros_like(self.p)
-        self.dz = np.zeros_like(self.z)
-        self.dy_hat = np.zeros_like(self.y_hat)
-        self.dh = np.zeros_like(self.h)
         self.dW_xh = np.zeros_like(self.W_xh)
         self.dW_hh = np.zeros_like(self.W_hh)
         self.dW_hy = np.zeros_like(self.W_hy)
         self.db_h = np.zeros_like(self.b_h)
         self.db_y = np.zeros_like(self.b_y)
 
+        self.z = {}
+        self.h = {}
+        self.p = {}
+        self.y_hat = {}
+
+        self.dz = {}
+        self.dh = {}
+        self.dp = {}
+        self.dy_hat = {}
+
         self.cost_lst = []
 
     def forward(self, x):
-        for i in range(4):
-            self.z[i] = self.W_hh * self.h[i - 1] + self.W_xh * x[i] + self.b_h
-            self.h[i] = tanh(self.z[0])
-            self.p[i] = self.W_hy * self.h[i] + self.b_y
+        self.z[0] = self.W_xh @ x[0] + self.b_h
+        self.h[0] = tanh(self.z[0])
+        self.p[0] = self.W_hy @ self.h[0] + self.b_y
+        self.y_hat[0] = softmax(self.p[0])
+        for i in range(1, 4):
+            self.z[i] = self.W_hh @ self.h[i - 1] + self.W_xh @ x[i] + self.b_h
+            self.h[i] = tanh(self.z[i])
+            self.p[i] = self.W_hy @ self.h[i] + self.b_y
             self.y_hat[i] = softmax(self.p[i])
+
+        self.dz = copy.deepcopy(self.z)
+        self.dh = copy.deepcopy(self.h)
+        self.dp = copy.deepcopy(self.p)
+        self.dy_hat = copy.deepcopy(self.y_hat)
 
     def cost_function(self, y):
         cross_entropy_cost = - np.sum(y * np.log(self.y_hat) + (1 - y) * np.log(1 - self.y_hat))
@@ -50,7 +62,7 @@ class RNN:
             self.cost_lst.append(cost)
 
             # Print cost
-            if print_cost and epoch % 100 == 0 or epoch == epochs - 1:
+            if print_cost and epoch % 10 == 0 or epoch == epochs - 1:
                 print("Cost after iteration {}: {}".format(epoch, cost))
 
             for i in reversed(range(1, 4)):
