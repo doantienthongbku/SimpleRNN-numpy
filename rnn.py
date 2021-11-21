@@ -1,5 +1,5 @@
 import numpy as np
-from utils import tanh, dtanh, softmax, dsoftmax
+from utils import tanh, softmax, dtanh
 import matplotlib.pyplot as plt
 import copy
 
@@ -38,6 +38,7 @@ class RNN:
         self.h[0] = tanh(self.z[0])
         self.p[0] = self.W_hy @ self.h[0] + self.b_y
         self.y_hat[0] = softmax(self.p[0])
+
         for i in range(1, 4):
             self.z[i] = self.W_hh @ self.h[i - 1] + self.W_xh @ x[i] + self.b_h
             self.h[i] = tanh(self.z[i])
@@ -66,7 +67,7 @@ class RNN:
             self.cost_lst.append(cost)
 
             # Print cost
-            if print_cost and epoch % 10 == 0 or epoch == epochs - 1:
+            if print_cost and epoch % 100 == 0 or epoch == epochs - 1:
                 print("Cost after iteration {}: {}".format(epoch, cost))
 
             # Reset derivative of parameters
@@ -75,27 +76,31 @@ class RNN:
             # Backward
             for i in reversed(range(1, 4)):
                 self.dy_hat[i] = - (np.divide(y[i], self.y_hat[i]) - np.divide(1 - y[i], 1 - self.y_hat[i]))
+                # print(self.dy_hat[i])
 
-                self.dp[i] = self.dy_hat[i] * dsoftmax(self.p[i])
+                # print(dsoftmax(self.p[i]))
+                # print(self.p[i].shape)
+                self.dp[i] = self.dy_hat[i] * softmax(self.p[i], derivative=True)
+                # print(self.dp[i] @ (self.h[i].T))
                 self.dW_hy += self.dp[i] @ (self.h[i].T)
                 self.db_y += np.sum(self.dp[i], axis=1, keepdims=True)
 
-                self.dh[i] = np.dot(self.W_hy[i].T, self.dp[i])
+                self.dh[i] = self.W_hy.T @ (self.dp[i])
                 self.dz[i] = self.dh[i] * dtanh(self.z[i])
-                self.dW_hh += np.dot(self.dz[i], self.h[i - 1])
-                self.dW_xh += np.dot(self.dz[i], self.x[i])
+                self.dW_hh += np.dot(self.dz[i], self.h[i - 1].T)
+                self.dW_xh += np.dot(self.dz[i], x[i].T)
                 self.db_h += np.sum(self.dz[i], axis=1, keepdims=True)
 
             # Backward for 0_th layer
             self.dy_hat[0] = - (np.divide(y[0], self.y_hat[0]) - np.divide(1 - y[0], 1 - self.y_hat[0]))
 
-            self.dp[0] = self.dy_hat[0] * dsoftmax(self.p[0])
+            self.dp[0] = self.dy_hat[0] * softmax(self.p[0], derivative=True)
             self.dW_hy += self.dp[0] @ (self.h[0].T)
             self.db_y += np.sum(self.dp[0], axis=1, keepdims=True)
 
-            self.dh[0] = np.dot(self.W_hy[0].T, self.dp[0])
+            self.dh[0] = np.dot(self.W_hy.T, self.dp[0])
             self.dz[0] = self.dh[0] * dtanh(self.z[0])
-            self.dW_xh += np.dot(self.dz[0], self.x[0])
+            self.dW_xh += np.dot(self.dz[0], x[0].T)
             self.db_h += np.sum(self.dz[0], axis=1, keepdims=True)
 
             # Update parameters
@@ -116,5 +121,5 @@ class RNN:
         plt.plot(self.cost_lst)
         plt.ylabel('cost')
         plt.xlabel('iterations (per hundreds)')
-        plt.title("Learning rate =" + str(lr))
+        plt.title("Learning rate = " + str(lr))
         plt.show()

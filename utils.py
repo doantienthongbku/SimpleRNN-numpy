@@ -9,14 +9,11 @@ def dtanh(z):
     return 1 - tanh(z) ** 2
 
 
-def softmax(z):
-    e_z = np.exp(z - np.max(z, axis=0, keepdims=True))
-    A = e_z / e_z.sum(axis=0)
-    return A
+def softmax(x, derivative=False):
+    x_safe = x + 1e-12
+    f = np.exp(x_safe) / np.sum(np.exp(x_safe))
 
-
-def dsoftmax(z):
-    # return (softmax(z + eps) - softmax(z - eps)) / (2 * eps)
-    Sz = softmax(z)
-    D = -np.outer(Sz, Sz) + np.diag(Sz.flatten())
-    return D
+    if derivative:  # Return the derivative of the function evaluated at x
+        return 1  # We will not need this one
+    else:  # Return the forward pass of the function at x
+        return f

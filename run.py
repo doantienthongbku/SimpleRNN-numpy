@@ -32,4 +32,5 @@ train_dataset, target = create_dataset()
 
 
 model = RNN()
-model.fit(train_dataset, target, epochs=100, lr=0.001, print_cost=True)
+model.fit(train_dataset, target, epochs=50000, lr=0.00001, print_cost=True)
+model.plot_costs(lr=0.001)
